@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   fillSpace: {
     flex: 1,
     width: "100%",
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
     paddingBottom: 20,
   },
   blurContent: {
