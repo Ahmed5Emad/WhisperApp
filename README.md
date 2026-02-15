@@ -1,50 +1,90 @@
-# Welcome to your Expo app 👋
+# WhisperApp 🎙️
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+WhisperApp is a powerful, privacy-focused React Native application that brings **local, on-device audio transcription** to your mobile device using OpenAI's Whisper model. 
 
-## Get started
+Built with **Expo** and **whisper.rn**, this app performs all inference directly on your phone. This means your audio **never leaves your device**, ensuring complete privacy and full offline functionality.
 
-1. Install dependencies
+## ✨ Key Features
 
-   ```bash
-   npm install
-   ```
+- **On-Device Transcription:** No internet connection required. Fast, accurate, and private.
+- **Real-time & File Mode:** Transcribe live audio or process existing files (coming soon).
+- **Multiple Models:** Support for various Whisper model sizes (Tiny, Base, Small, Medium, Large) to balance speed and accuracy.
+- **Multilingual Support:** Transcribe English and other languages (via Multilingual models).
+- **Text-to-Speech (TTS):** Listen to your transcribed text with built-in speech synthesis.
+- **Modern UI:** A beautiful "Glassmorphism" design using `expo-blur` and linear gradients.
+- **Customizable:** easy settings to switch models, languages, and quantization levels.
 
-2. Start the app
+## 🛠️ Tech Stack
 
-   ```bash
-   npx expo start
-   ```
+- **Framework:** [Expo](https://expo.dev/) (SDK 54) / React Native
+- **Core Engine:** [whisper.rn](https://github.com/mrousavy/whisper.rn) (binding for [Whisper.cpp](https://github.com/ggerganov/whisper.cpp))
+- **Navigation:** Expo Router
+- **State Management:** React Hooks & Async Storage
+- **Audio:** `expo-audio` (Recording) & `expo-speech` (TTS)
 
-In the output, you'll find options to open the app in a
+## 🚀 Getting Started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Prerequisites
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- [Node.js](https://nodejs.org/) (LTS recommended)
+- [Expo Go](https://expo.dev/client) app on your phone, or an Android/iOS emulator.
+- *Note:* For the best performance with `whisper.rn`, a development build or prebuild is often recommended over Expo Go, though basic functionality may work.
 
-## Get a fresh project
+### Installation
 
-When you're ready, run:
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/whisper-app.git
+    cd whisper-app
+    ```
 
-```bash
-npm run reset-project
-```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    # or
+    bun install
+    ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+3.  **Run the app:**
+    ```bash
+    npx expo start
+    ```
 
-## Learn more
+4.  **Launch on Device:**
+    - Scan the QR code with your phone (using the Expo Go app or Camera app).
+    - Or press `a` to run on Android Emulator / `i` to run on iOS Simulator.
 
-To learn more about developing your project with Expo, look at the following resources:
+## 📖 Usage Guide
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1.  **Download a Model:**
+    - Go to **Settings**.
+    - Choose a model size (e.g., `Tiny` for speed, `Base` for balance).
+    - Select `English` or `Multilingual`.
+    - Tap **Download**.
 
-## Join the community
+2.  **Start Transcribing:**
+    - Go to the **Home** or **Transcription** screen.
+    - Tap the **Microphone** button to start recording.
+    - Speak clearly! The text will appear in real-time (or after processing depending on mode).
+    - Tap **Stop** to finish.
 
-Join our community of developers creating universal apps.
+3.  **Text-to-Speech:**
+    - Tap the small speaker icon next to any transcribed message to hear it read aloud.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## ⚙️ Model Configuration
+
+You can manage downloaded models in the **Settings** screen.
+
+- **Tiny / Base:** Recommended for older devices or fastest response.
+- **Small / Medium:** Better accuracy, requires more RAM/Storage.
+- **Quantization:**
+  - `Standard`: Highest accuracy.
+  - `Q5 / Q8`: Compressed models (smaller size, slightly faster, minimal accuracy loss).
+
+## 🤝 Contributing
+
+Contributions are welcome! Please fork the repository and submit a Pull Request.
+
+## 📄 License
+
+This project is open-source and available under the [MIT License](LICENSE).
