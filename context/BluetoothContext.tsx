@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { BleManager, Device } from 'react-native-ble-plx';
 import { Platform, PermissionsAndroid } from 'react-native';
 import * as Location from 'expo-location';
-import { encode } from 'base-64';
+import { Buffer } from 'buffer';
 
 const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
 const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
@@ -114,7 +114,7 @@ export const BluetoothProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!connectedDevice) return;
 
     try {
-      const base64Data = encode(data);
+      const base64Data = Buffer.from(data, 'utf-8').toString('base64');
       await connectedDevice.writeCharacteristicWithResponseForService(
         SERVICE_UUID,
         CHARACTERISTIC_UUID,

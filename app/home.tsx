@@ -5,11 +5,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Slider from '@react-native-community/slider';
 import { BackIcon, UserGuideIcon, BrightnessIcon, FontIcon, SettingsIcon } from "../components/Icons";
+import { useBluetooth } from "../context/BluetoothContext";
 
 type Mode = 'brightness' | 'font';
 
 export default function Home() {
   const router = useRouter();
+  const { sendData } = useBluetooth();
   
   const [activeMode, setActiveMode] = useState<Mode>('brightness');
   const [brightness, setBrightness] = useState(60);
@@ -29,6 +31,15 @@ export default function Home() {
       setBrightness(val);
     } else {
       setFontSize(val);
+    }
+  };
+
+  const handleSlidingComplete = (val: number) => {
+    const roundedVal = Math.round(val);
+    if (isBrightness) {
+      sendData(`cmd:brightness:${roundedVal}`);
+    } else {
+      sendData(`cmd:font:${roundedVal}`);
     }
   };
 
@@ -128,6 +139,7 @@ export default function Home() {
               maximumValue={maxVal}
               value={currentValue}
               onValueChange={handleSliderChange}
+              onSlidingComplete={handleSlidingComplete}
               minimumTrackTintColor={activeColor}
               maximumTrackTintColor="rgba(0,0,0,0.1)"
               thumbTintColor="#FFFFFF"

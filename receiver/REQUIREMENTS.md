@@ -10,11 +10,13 @@ These are installed within the local virtual environment:
 | :--- | :--- |
 | `bless` | Provides the Bluetooth Low Energy (BLE) Peripheral/Server capability. |
 | `blessed` | Handles the terminal UI, colors, and real-time screen clearing. |
+| `arabic-reshaper` | Connects Arabic characters for proper rendering. |
+| `python-bidi` | Handles right-to-left (RTL) layout and text reordering. |
 
 ### Installation Command
 If your virtual environment is already set up, you can ensure they are installed by running:
 ```bash
-./venv/bin/pip install bless blessed
+./venv/bin/pip install bless blessed arabic-reshaper python-bidi
 ```
 
 ## System Dependencies (Linux)

@@ -9,13 +9,12 @@ Built with **Expo** and **whisper.rn**, this app performs all inference directly
 - **On-Device Transcription:** No internet connection required. Fast, accurate, and private.
 - **Real-time & File Mode:** Transcribe live audio or process existing files.
 - **Bluetooth Real-time Streaming:** Stream your transcriptions live to your Linux system via Bluetooth Low Energy (BLE).
-- **Multiple Models:** Support for various Whisper model sizes (Tiny, Base, Small, Medium, Large) to balance speed and accuracy.
-- **Model Management:** Download various Whisper model sizes and quantization levels directly in-app. Easily delete old models to free up storage.
-- **Multilingual Support:** Transcribe English and other languages (via Multilingual models).
-- **Text-to-Speech (TTS):** Listen to your transcribed text with built-in speech synthesis.
+- **GUI & Terminal Receivers:** Choose between a minimalist Terminal UI or a dedicated GUI for smart glasses.
+- **Arabic Script Support:** Full support for Arabic transcription with proper character shaping and RTL layout.
+- **Remote Controls:** Control font size and screen brightness directly from the mobile app.
+- **Multiple Models:** Support for various Whisper model sizes (Tiny, Base, Small, Medium, Large).
 - **Modern UI:** A beautiful "Glassmorphism" design using `expo-blur` and linear gradients.
 - **Hands-Free Mode:** Integrated silence detection and auto-start for seamless recording.
-- **Customizable:** Easy settings to switch models, languages, and quantization levels.
 
 ## 🛠️ Tech Stack
 
@@ -23,20 +22,20 @@ Built with **Expo** and **whisper.rn**, this app performs all inference directly
 - **Framework:** [Expo](https://expo.dev/) (SDK 54) / React Native
 - **Core Engine:** [whisper.rn](https://github.com/mrousavy/whisper.rn)
 - **Bluetooth:** `react-native-ble-plx`
-- **Navigation:** Expo Router
-- **Audio:** `expo-audio` (Recording) & `expo-speech` (TTS)
+- **Encoding:** `buffer` for UTF-8/Arabic support.
 
 ### Linux Receiver
 - **Language:** Python 3
-- **BLE Library:** `bless` (Bluetooth Low Energy Server Software)
-- **UI:** `blessed` (Terminal styling)
+- **BLE Library:** `bless`
+- **GUI:** `Tkinter` with `arabic-reshaper` and `python-bidi`.
+- **Terminal UI:** `blessed`
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (LTS recommended)
-- [Bun](https://bun.sh/) (Optional, but recommended for speed)
+- [Bun](https://bun.sh/) (Recommended)
 - Android/iOS device for testing (Bluetooth functionality requires a physical device)
 
 ### Installation
@@ -56,17 +55,11 @@ Built with **Expo** and **whisper.rn**, this app performs all inference directly
     ```bash
     npx expo run:android # or run:ios
     ```
-    *Note: Bluetooth features require a development build (`npx expo run:android`) and will not work in Expo Go.*
 
 ## 📖 Usage Guide
 
-### 1. Basic Transcription
-- **Download a Model:** Go to **Settings**, choose a model (e.g., `Base English`), and tap **Download**.
-- **Start Transcribing:** Go to the **Transcription** screen and tap the **Microphone** button.
-- **Text-to-Speech:** Tap the speaker icon next to any message to hear it.
-
-### 2. Bluetooth Streaming (Linux)
-WhisperApp can stream transcriptions directly to your Linux terminal as you speak.
+### 1. Bluetooth Streaming (Linux)
+WhisperApp can stream transcriptions directly to your Linux system or Smart Glass display.
 
 #### Set up the Linux Receiver:
 1. Navigate to the receiver directory:
@@ -80,29 +73,26 @@ WhisperApp can stream transcriptions directly to your Linux terminal as you spea
    ```
 3. Install requirements:
    ```bash
-   pip install bless blessed
+   pip install bless blessed arabic-reshaper python-bidi
    ```
-4. Run the receiver (may require sudo for Bluetooth advertising):
+4. Run the GUI receiver (recommended for Glass/Screens):
+   ```bash
+   sudo ./venv/bin/python gui_receiver.py
+   ```
+   Or the terminal receiver:
    ```bash
    sudo ./venv/bin/python receiver.py
    ```
 
-#### Connect from the App:
-1. Ensure the receiver is running on your Linux machine.
-2. In WhisperApp, go to **Settings**.
-3. Under **Bluetooth Transfer**, tap **Scan for Devices**.
-4. Select **WhisperLinux** from the list.
-5. Once connected, go back to **Transcription** and start speaking. Your text will appear live on your Linux terminal!
+#### Remote Control:
+Use the **Home** screen sliders to adjust:
+- **Font Size:** Dynamically scales text on the receiver.
+- **Brightness:** Controls text dimming for better visibility on glass.
 
 ## ⚙️ Model Configuration
 
-- **Tiny / Base:** Recommended for older devices or fastest response.
-- **Small / Medium:** Better accuracy, requires more RAM/Storage.
-- **Quantization:** Use `Q5` or `Q8` for compressed models with minimal accuracy loss.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please fork the repository and submit a Pull Request.
+- **Tiny / Base:** Recommended for fastest response.
+- **Arabic:** Use Multilingual models (e.g., `base` or `small`) for Arabic support.
 
 ## 📄 License
 
