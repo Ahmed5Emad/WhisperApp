@@ -10,9 +10,11 @@ Built with **Expo** and **whisper.rn**, this app performs all inference directly
 - **Real-time & File Mode:** Transcribe live audio or process existing files.
 - **Bluetooth Real-time Streaming:** Stream your transcriptions live to your Linux system via Bluetooth Low Energy (BLE).
 - **Multiple Models:** Support for various Whisper model sizes (Tiny, Base, Small, Medium, Large) to balance speed and accuracy.
+- **Model Management:** Download various Whisper model sizes and quantization levels directly in-app. Easily delete old models to free up storage.
 - **Multilingual Support:** Transcribe English and other languages (via Multilingual models).
 - **Text-to-Speech (TTS):** Listen to your transcribed text with built-in speech synthesis.
 - **Modern UI:** A beautiful "Glassmorphism" design using `expo-blur` and linear gradients.
+- **Hands-Free Mode:** Integrated silence detection and auto-start for seamless recording.
 - **Customizable:** Easy settings to switch models, languages, and quantization levels.
 
 ## 🛠️ Tech Stack
