@@ -48,16 +48,26 @@ export default function Transcription() {
   
   // Track last sent text to avoid repetition
   const lastSentTextRef = useRef("");
+  const currentTextRef = useRef("");
+  const silenceTimerRef = useRef<any>(null);
 
   useEffect(() => {
     setupApp();
     return () => {
       stopRecordingSession();
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       Speech.stop();
     };
   }, []);
 
   useEffect(() => {
+    if (modelReady && !isRecording && messages.length === 0 && currentText === "") {
+      toggleRecording();
+    }
+  }, [modelReady]);
+
+  useEffect(() => {
+    currentTextRef.current = currentText;
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages, currentText]);
 
@@ -161,6 +171,10 @@ export default function Transcription() {
   const handleNewTranscription = (text: string) => {
     if (!text || text === lastSentTextRef.current) return;
 
+    // Filter out noise/hallucination tokens common in silence
+    const noisePatterns = [/\[BLANK_AUDIO\]/i, /\[music\]/i, /\[silence\]/i, /\[noise\]/i, /\(music\)/i];
+    if (noisePatterns.some(pattern => pattern.test(text))) return;
+
     // Check if it's an extension of what we already have
     let delta = "";
     if (text.startsWith(lastSentTextRef.current)) {
@@ -176,6 +190,26 @@ export default function Transcription() {
         sendData(delta);
       }
       lastSentTextRef.current = text;
+
+      // --- HANDS-FREE SILENCE DETECTION ---
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = setTimeout(async () => {
+        if (currentTextRef.current.trim().length > 0) {
+          // Commit current text to messages
+          setMessages(prev => [...prev, currentTextRef.current]);
+          setCurrentText("");
+          lastSentTextRef.current = "";
+
+          // Restart session to clear internal Whisper buffer
+          await stopRecordingSession();
+          setIsRecording(false);
+          
+          // Brief pause then restart
+          setTimeout(() => {
+            toggleRecording();
+          }, 300);
+        }
+      }, 2000); // 2 seconds of silence triggers finalization
     }
   };
 
@@ -284,7 +318,7 @@ export default function Transcription() {
         >
           {messages.length === 0 && currentText === "" && modelReady && (
             <View style={styles.messageBubbleFull}>
-              <Text style={styles.messageText}>Press the mic button below to start transcribing locally.</Text>
+              <Text style={styles.messageText}>Hands-free mode active. Start speaking and I will transcribe automatically.</Text>
             </View>
           )}
 
