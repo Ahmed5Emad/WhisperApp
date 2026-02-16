@@ -50,6 +50,8 @@ export default function Transcription() {
   const lastSentTextRef = useRef("");
   const currentTextRef = useRef("");
   const silenceTimerRef = useRef<any>(null);
+  const lastFinalizedTextRef = useRef("");
+  const sessionPrefixRef = useRef("");
 
   useEffect(() => {
     setupApp();
@@ -169,27 +171,48 @@ export default function Transcription() {
   };
 
   const handleNewTranscription = (text: string) => {
-    if (!text || text === lastSentTextRef.current) return;
+    if (!text) return;
+
+    // --- SESSION REPETITION DETECTION ---
+    // Detect if Whisper is repeating the last finalized message at the start of a new segment
+    if (lastSentTextRef.current === "" && sessionPrefixRef.current === "" && lastFinalizedTextRef.current !== "") {
+       const trimmedText = text.trim().toLowerCase();
+       const trimmedFinalized = lastFinalizedTextRef.current.trim().toLowerCase();
+       
+       // If the new transcription starts with the last finalized text, mark it as a prefix to ignore
+       if (trimmedText.startsWith(trimmedFinalized)) {
+          sessionPrefixRef.current = text.slice(0, lastFinalizedTextRef.current.length);
+       }
+    }
+
+    // Clean the incoming text by removing the detected session prefix
+    let cleanText = text;
+    if (sessionPrefixRef.current && text.startsWith(sessionPrefixRef.current)) {
+       cleanText = text.slice(sessionPrefixRef.current.length);
+    }
+
+    // If no new content after cleaning or it matches the last sent part, skip
+    if (!cleanText || cleanText === lastSentTextRef.current) return;
 
     // Filter out noise/hallucination tokens common in silence 
     const noisePatterns = [/\[BLANK_AUDIO\]/i, /\[music\]/i, /\[silence\]/i, /\[noise\]/i, /\(music\)/i , /\[SOUND]/i ];
-    if (noisePatterns.some(pattern => pattern.test(text))) return;
+    if (noisePatterns.some(pattern => pattern.test(cleanText))) return;
 
-    // Check if it's an extension of what we already have
+    // Check if it's an extension of what we already have in this segment
     let delta = "";
-    if (text.startsWith(lastSentTextRef.current)) {
-      delta = text.slice(lastSentTextRef.current.length);
+    if (cleanText.startsWith(lastSentTextRef.current)) {
+      delta = cleanText.slice(lastSentTextRef.current.length);
     } else {
       // If it's completely different, treat the whole thing as new (or a reset)
-      delta = " " + text;
+      delta = " " + cleanText;
     }
 
     if (delta.trim().length > 0) {
-      setCurrentText(text);
+      setCurrentText(cleanText);
       if (connectedDevice) {
         sendData(delta);
       }
-      lastSentTextRef.current = text;
+      lastSentTextRef.current = cleanText;
 
       // --- HANDS-FREE SILENCE DETECTION ---
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
@@ -197,8 +220,10 @@ export default function Transcription() {
         if (currentTextRef.current.trim().length > 0) {
           // Commit current text to messages
           setMessages(prev => [...prev, currentTextRef.current]);
+          lastFinalizedTextRef.current = currentTextRef.current;
           setCurrentText("");
           lastSentTextRef.current = "";
+          sessionPrefixRef.current = "";
 
           // Restart session to clear internal Whisper buffer
           await stopRecordingSession();
@@ -223,8 +248,10 @@ export default function Transcription() {
       
       if (currentText.trim().length > 0) {
         setMessages(prev => [...prev, currentText]);
+        lastFinalizedTextRef.current = currentText;
         setCurrentText("");
         lastSentTextRef.current = "";
+        sessionPrefixRef.current = "";
       }
     } else {
       // --- START ---
@@ -234,6 +261,7 @@ export default function Transcription() {
       setIsRecording(true);
       setCurrentText("");
       lastSentTextRef.current = "";
+      sessionPrefixRef.current = "";
       
       try {
         if (RealtimeTranscriber) {
