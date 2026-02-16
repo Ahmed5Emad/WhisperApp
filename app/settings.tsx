@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { BackIcon, DownloadIcon, CheckIcon } from '../components/Icons';
+import { BackIcon, DownloadIcon, CheckIcon, TrashIcon } from '../components/Icons';
 import { useBluetooth } from '../context/BluetoothContext';
 
 // --- DATA STRUCTURES ---
@@ -161,7 +161,6 @@ export default function Settings() {
       const result = await downloadResumable.downloadAsync();
       if (result) {
         setDownloadedModels(prev => [...prev, currentCombination]);
-        Alert.alert("Success", `Model ${currentCombination} downloaded successfully.`);
       }
     } catch (e) {
       console.error("Download error", e);
@@ -170,6 +169,36 @@ export default function Settings() {
       setDownloadingModel(null);
       setDownloadProgress(0);
     }
+  };
+
+  const deleteModel = async (modelName: string) => {
+    Alert.alert(
+      "Delete Model",
+      `Are you sure you want to delete ${modelName}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            const FS = FileSystem;
+            const fileUri = FS.documentDirectory + 'whisper-models/' + `ggml-${modelName}.bin`;
+            try {
+              await FS.deleteAsync(fileUri);
+              setDownloadedModels(prev => prev.filter(m => m !== modelName));
+              if (activeModel === modelName) {
+                setActiveModel('');
+                await AsyncStorage.removeItem('model');
+              }
+              Alert.alert("Success", "Model deleted successfully.");
+            } catch (e) {
+              console.error("Delete error", e);
+              Alert.alert("Error", "Failed to delete model.");
+            }
+          }
+        }
+      ]
+    );
   };
 
   const availableQuants = QUANT_OPTIONS[selType === 'en' ? `${selFamily}.en` : selFamily] || ['standard'];
@@ -366,8 +395,13 @@ export default function Settings() {
               ) : (
                 downloadedModels.map((m) => (
                   <View key={m} style={styles.optionItem}>
-                    <Text style={[styles.optionText, activeModel === m && styles.selectedText]}>{m}</Text>
-                    {activeModel === m && <CheckIcon width={20} height={20} />}
+                    <View style={styles.modelItemInfo}>
+                      <Text style={[styles.optionText, activeModel === m && styles.selectedText]}>{m}</Text>
+                      {activeModel === m && <CheckIcon width={18} height={18} style={{marginLeft: 8}} />}
+                    </View>
+                    <Pressable onPress={() => deleteModel(m)} style={styles.deleteButton}>
+                      <TrashIcon width={20} height={20} color="#FF4B4B" />
+                    </Pressable>
                   </View>
                 ))
               )}
@@ -378,6 +412,7 @@ export default function Settings() {
     </LinearGradient>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -558,6 +593,15 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  modelItemInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 75, 75, 0.1)',
   },
   optionText: {
     fontSize: 15,

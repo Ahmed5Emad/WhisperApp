@@ -171,8 +171,8 @@ export default function Transcription() {
   const handleNewTranscription = (text: string) => {
     if (!text || text === lastSentTextRef.current) return;
 
-    // Filter out noise/hallucination tokens common in silence
-    const noisePatterns = [/\[BLANK_AUDIO\]/i, /\[music\]/i, /\[silence\]/i, /\[noise\]/i, /\(music\)/i];
+    // Filter out noise/hallucination tokens common in silence 
+    const noisePatterns = [/\[BLANK_AUDIO\]/i, /\[music\]/i, /\[silence\]/i, /\[noise\]/i, /\(music\)/i , /\[SOUND]/i ];
     if (noisePatterns.some(pattern => pattern.test(text))) return;
 
     // Check if it's an extension of what we already have
