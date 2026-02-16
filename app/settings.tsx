@@ -7,6 +7,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { BackIcon, DownloadIcon, CheckIcon } from '../components/Icons';
+import { useBluetooth } from '../context/BluetoothContext';
 
 // --- DATA STRUCTURES ---
 
@@ -53,6 +54,7 @@ const LANGUAGES = [
 
 export default function Settings() {
   const router = useRouter();
+  const { isScanning, devices, connectedDevice, error, scanDevices, connectToDevice, disconnect } = useBluetooth();
   
   // App Settings
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -187,6 +189,48 @@ export default function Settings() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Bluetooth Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Bluetooth Transfer</Text>
+          <View style={styles.glassContainer}>
+            <BlurView intensity={40} tint="light" style={styles.blurContent}>
+              <View style={styles.statusBox}>
+                <Text style={styles.subLabel}>Status: {connectedDevice ? `Connected to ${connectedDevice.name}` : 'Not Connected'}</Text>
+                {error && <Text style={styles.errorText}>{error}</Text>}
+                
+                <View style={styles.btActionContainer}>
+                  {connectedDevice ? (
+                    <Pressable onPress={disconnect} style={[styles.actionButton, { backgroundColor: '#FF4B4B' }]}>
+                      <Text style={styles.actionButtonText}>Disconnect</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable onPress={scanDevices} style={styles.actionButton} disabled={isScanning}>
+                      {isScanning ? <ActivityIndicator color="#FFF" /> : <Text style={styles.actionButtonText}>Scan for Devices</Text>}
+                    </Pressable>
+                  )}
+                </View>
+
+                {!connectedDevice && devices.length > 0 && (
+                  <View style={styles.deviceList}>
+                    <Text style={styles.subLabel}>Available Devices:</Text>
+                    {devices.map((device) => (
+                      <Pressable 
+                        key={device.id} 
+                        style={styles.deviceItem}
+                        onPress={() => connectToDevice(device)}
+                      >
+                        <Text style={styles.deviceText}>{device.name || 'Unknown'}</Text>
+                        <Text style={styles.deviceIdText}>{device.id}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </BlurView>
+          </View>
+          <Text style={styles.hintText}>Connect to your Linux system to stream transcriptions in real-time.</Text>
+        </View>
+
         {/* Language Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Language</Text>
@@ -537,5 +581,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     lineHeight: 18,
     fontStyle: 'italic',
+  },
+  errorText: {
+    color: '#FF4B4B',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  btActionContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  deviceList: {
+    width: '100%',
+    marginTop: 10,
+    gap: 10,
+  },
+  deviceItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  deviceText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#424242',
+  },
+  deviceIdText: {
+    fontSize: 10,
+    color: '#666',
   }
 });

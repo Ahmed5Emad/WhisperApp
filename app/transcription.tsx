@@ -14,7 +14,7 @@ import * as WhisperRN from 'whisper.rn';
 
 // --- CUSTOM COMPONENTS ---
 import { MicIcon, WaveformIcon, StopIcon, MicStartIcon, KeyboardIcon, BackIcon } from '@/components/Icons';
-
+import { useBluetooth } from '../context/BluetoothContext';
 
 const { initWhisper, RealtimeTranscriber } = WhisperRN;
 
@@ -31,6 +31,7 @@ console.warn = (...args) => {
 
 export default function Transcription() {
   const router = useRouter();
+  const { connectedDevice, sendData } = useBluetooth();
   const [modelReady, setModelReady] = useState(false);
   const [modelPath, setModelPath] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -44,6 +45,9 @@ export default function Transcription() {
   const stopLegacyRef = useRef<(() => Promise<void>) | null>(null);
   const whisperContextRef = useRef<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  
+  // Track last sent text to avoid repetition
+  const lastSentTextRef = useRef("");
 
   useEffect(() => {
     setupApp();
@@ -154,6 +158,27 @@ export default function Transcription() {
     }
   };
 
+  const handleNewTranscription = (text: string) => {
+    if (!text || text === lastSentTextRef.current) return;
+
+    // Check if it's an extension of what we already have
+    let delta = "";
+    if (text.startsWith(lastSentTextRef.current)) {
+      delta = text.slice(lastSentTextRef.current.length);
+    } else {
+      // If it's completely different, treat the whole thing as new (or a reset)
+      delta = " " + text;
+    }
+
+    if (delta.trim().length > 0) {
+      setCurrentText(text);
+      if (connectedDevice) {
+        sendData(delta);
+      }
+      lastSentTextRef.current = text;
+    }
+  };
+
   const toggleRecording = async () => {
     if (!modelReady || !modelPath) return;
 
@@ -165,6 +190,7 @@ export default function Transcription() {
       if (currentText.trim().length > 0) {
         setMessages(prev => [...prev, currentText]);
         setCurrentText("");
+        lastSentTextRef.current = "";
       }
     } else {
       // --- START ---
@@ -173,6 +199,7 @@ export default function Transcription() {
 
       setIsRecording(true);
       setCurrentText("");
+      lastSentTextRef.current = "";
       
       try {
         if (RealtimeTranscriber) {
@@ -186,7 +213,9 @@ export default function Transcription() {
            });
            
            realtime.on('transcribe', (data: any) => {
-             if (data?.result) setCurrentText(prev => prev + " " + data.result); 
+             if (data?.result) {
+               handleNewTranscription(data.result);
+             }
            });
            
            await realtime.start();
@@ -202,7 +231,9 @@ export default function Transcription() {
            stopLegacyRef.current = stop;
 
            subscribe((event: any) => {
-             if (event.data?.result) setCurrentText(event.data.result);
+             if (event.data?.result) {
+               handleNewTranscription(event.data.result);
+             }
            });
         }
       } catch (e) {
@@ -224,7 +255,18 @@ export default function Transcription() {
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
-      
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <BackIcon color="#424242" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Transcription</Text>
+        {connectedDevice && (
+          <View style={styles.btStatus}>
+            <View style={styles.btDot} />
+            <Text style={styles.btText}>Live</Text>
+          </View>
+        )}
+      </View>
 
       <View style={styles.bigFrame}>
         {!modelReady && (
@@ -272,7 +314,7 @@ export default function Transcription() {
 
       <View style={styles.footerGlass}>
         <BlurView intensity={50} tint="light" style={styles.footerContent}>
-          <Pressable style={styles.iconButton}>
+          <Pressable style={styles.iconButton} onPress={() => router.push('/settings')}>
              <KeyboardIcon width={28} height={28} color="#424242" />
           </Pressable>
           <View style={styles.glassContainerWave}>
@@ -309,6 +351,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     marginBottom: 10,
+    position: 'relative',
   },
   backButton: {
     padding: 10,
@@ -320,6 +363,27 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "#424242",
+  },
+  btStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 'auto',
+    gap: 6,
+  },
+  btDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+  btText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#424242',
   },
   bigFrame: {
     flex: 1,

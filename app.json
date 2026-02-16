@@ -23,7 +23,12 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.WhisperApp",
       "permissions": [
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -33,6 +38,17 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": [
+            "peripheral",
+            "central"
+          ],
+          "bluetoothAlwaysPermission": "Allow WhisperApp to use Bluetooth to send transcriptions to your Linux system."
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -64,7 +80,13 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "sdkVersion": "54.0.0"
+    "sdkVersion": "54.0.0",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e91e6355-a9bf-47f7-a27d-95cbe61734dc"
+      }
+    }
   },
   "name": "whisperapp"
 }
