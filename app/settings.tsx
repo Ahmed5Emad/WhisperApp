@@ -3,11 +3,11 @@ import { StyleSheet, View, Text, Pressable, ActivityIndicator, Alert, ScrollView
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useRouter } from "expo-router";
-import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { BackIcon, DownloadIcon, CheckIcon, TrashIcon } from '../components/Icons';
+import { BackIcon, DownloadIcon, CheckIcon, TrashIcon, PauseIcon, PlayIcon, CloseIcon } from '../components/Icons';
 import { useBluetooth } from '../context/BluetoothContext';
+import { useDownload } from '../context/DownloadContext';
 
 // --- DATA STRUCTURES ---
 
@@ -55,6 +55,15 @@ const LANGUAGES = [
 export default function Settings() {
   const router = useRouter();
   const { isScanning, devices, connectedDevice, error, scanDevices, connectToDevice, disconnect } = useBluetooth();
+  const { 
+    downloadState, 
+    downloadModel, 
+    pauseDownload, 
+    resumeDownload, 
+    cancelDownload, 
+    downloadedModels, 
+    deleteModel: deleteModelFromStore 
+  } = useDownload();
   
   // App Settings
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -65,14 +74,8 @@ export default function Settings() {
   const [selType, setSelType] = useState<'en' | 'multilingual'>('en');
   const [selQuant, setSelQuant] = useState('standard');
 
-  // Status State
-  const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [downloadedModels, setDownloadedModels] = useState<string[]>([]);
-
   useEffect(() => {
     loadSettings();
-    checkDownloadedModels();
   }, []);
 
   // Update Type and Quant when Family changes
@@ -90,27 +93,6 @@ export default function Settings() {
       if (model) setActiveModel(model);
     } catch (e) {
       console.error("Failed to load settings", e);
-    }
-  };
-
-  const checkDownloadedModels = async () => {
-    const FS = FileSystem;
-    const fileDir = FS.documentDirectory + 'whisper-models/';
-    try {
-      const dirInfo = await FS.getInfoAsync(fileDir);
-      if (!dirInfo.exists) {
-        await FS.makeDirectoryAsync(fileDir);
-        setDownloadedModels([]);
-        return;
-      }
-      const files = await FS.readDirectoryAsync(fileDir);
-      // files are like ggml-tiny.en.bin or ggml-tiny.en-q5_1.bin
-      const downloaded = files
-        .filter(f => f.startsWith('ggml-') && f.endsWith('.bin'))
-        .map(f => f.replace('ggml-', '').replace('.bin', ''));
-      setDownloadedModels(downloaded);
-    } catch (e) {
-      console.error("Failed to check models", e);
     }
   };
 
@@ -137,41 +119,7 @@ export default function Settings() {
     Alert.alert("Success", `Active model set to ${currentCombination}`);
   };
 
-  const downloadModel = async () => {
-    const FS = FileSystem;
-    const fileDir = FS.documentDirectory + 'whisper-models/';
-    const fileName = `ggml-${currentCombination}.bin`;
-    const fileUri = fileDir + fileName;
-    const url = `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${fileName}`;
-    
-    setDownloadingModel(currentCombination);
-    setDownloadProgress(0);
-
-    try {
-      const downloadResumable = FS.createDownloadResumable(
-        url,
-        fileUri,
-        {},
-        (dp) => {
-          const progress = dp.totalBytesWritten / dp.totalBytesExpectedToWrite;
-          setDownloadProgress(progress);
-        }
-      );
-
-      const result = await downloadResumable.downloadAsync();
-      if (result) {
-        setDownloadedModels(prev => [...prev, currentCombination]);
-      }
-    } catch (e) {
-      console.error("Download error", e);
-      Alert.alert("Error", "Failed to download model. Check your internet connection.");
-    } finally {
-      setDownloadingModel(null);
-      setDownloadProgress(0);
-    }
-  };
-
-  const deleteModel = async (modelName: string) => {
+  const handleDeleteModel = async (modelName: string) => {
     Alert.alert(
       "Delete Model",
       `Are you sure you want to delete ${modelName}?`,
@@ -181,11 +129,8 @@ export default function Settings() {
           text: "Delete", 
           style: "destructive",
           onPress: async () => {
-            const FS = FileSystem;
-            const fileUri = FS.documentDirectory + 'whisper-models/' + `ggml-${modelName}.bin`;
             try {
-              await FS.deleteAsync(fileUri);
-              setDownloadedModels(prev => prev.filter(m => m !== modelName));
+              await deleteModelFromStore(modelName);
               if (activeModel === modelName) {
                 setActiveModel('');
                 await AsyncStorage.removeItem('model');
@@ -202,6 +147,8 @@ export default function Settings() {
   };
 
   const availableQuants = QUANT_OPTIONS[selType === 'en' ? `${selFamily}.en` : selFamily] || ['standard'];
+
+  const isDownloadingThis = downloadState.modelId === currentCombination;
 
   return (
     <LinearGradient
@@ -352,10 +299,26 @@ export default function Settings() {
                 )}
               </View>
 
-              {downloadingModel === currentCombination ? (
-                <View style={styles.downloadProgressContainer}>
-                  <ActivityIndicator color="#2E66F5" />
-                  <Text style={styles.progressText}>{Math.round(downloadProgress * 100)}%</Text>
+              {isDownloadingThis || (downloadState.isPaused && downloadState.modelId === currentCombination) ? (
+                <View style={styles.downloadControlsContainer}>
+                  <View style={styles.progressWrapper}>
+                    <ActivityIndicator color="#2E66F5" animating={downloadState.isDownloading} />
+                    <Text style={styles.progressText}>{Math.round(downloadState.progress * 100)}%</Text>
+                  </View>
+                  <View style={styles.downloadButtons}>
+                    {downloadState.isPaused ? (
+                      <Pressable onPress={resumeDownload} style={styles.iconButton}>
+                        <PlayIcon color="#2E66F5" />
+                      </Pressable>
+                    ) : (
+                      <Pressable onPress={pauseDownload} style={styles.iconButton}>
+                        <PauseIcon color="#2E66F5" />
+                      </Pressable>
+                    )}
+                    <Pressable onPress={cancelDownload} style={styles.iconButton}>
+                      <CloseIcon color="#FF4B4B" />
+                    </Pressable>
+                  </View>
                 </View>
               ) : isCurrentDownloaded ? (
                 <Pressable 
@@ -369,9 +332,9 @@ export default function Settings() {
                 </Pressable>
               ) : (
                 <Pressable 
-                  onPress={downloadModel}
-                  style={styles.downloadAction}
-                  disabled={!!downloadingModel}
+                  onPress={() => downloadModel(currentCombination)}
+                  style={[styles.downloadAction, downloadState.isDownloading && styles.disabledButton]}
+                  disabled={downloadState.isDownloading}
                 >
                   <DownloadIcon color="#FFF" />
                   <Text style={styles.downloadActionText}>Download Model</Text>
@@ -399,7 +362,7 @@ export default function Settings() {
                       <Text style={[styles.optionText, activeModel === m && styles.selectedText]}>{m}</Text>
                       {activeModel === m && <CheckIcon width={18} height={18} style={{marginLeft: 8}} />}
                     </View>
-                    <Pressable onPress={() => deleteModel(m)} style={styles.deleteButton}>
+                    <Pressable onPress={() => handleDeleteModel(m)} style={styles.deleteButton}>
                       <TrashIcon width={20} height={20} color="#FF4B4B" />
                     </Pressable>
                   </View>
@@ -575,7 +538,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  downloadProgressContainer: {
+  downloadControlsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  progressWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -584,6 +554,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#2E66F5",
+  },
+  downloadButtons: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  iconButton: {
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   optionItem: {
     flexDirection: 'row',
